@@ -1,17 +1,23 @@
 package com.downloader.service;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class ByteCounter {
 
     private long totalBytes = 0;
     private int completedCount = 0;
 
-    // TODO 1: (Optional) a Lock, or use synchronized.
+    public synchronized void addBytes(long bytes) {
+        this.totalBytes += bytes;
+        this.completedCount++;
+    }
 
-    // TODO 2: void addBytes(long bytes)
-    //         - Add to totalBytes AND increment completedCount.
-    //         - MUST be thread-safe (no lost updates when many threads call at once).
+    public synchronized long getTotalBytes() {
+        return totalBytes;
+    }
 
-    // TODO 3: long getTotalBytes() -> return safely.
-
-    // TODO 4: int getCompletedCount() -> return safely.
+    public synchronized int getCompletedCount() {
+        return completedCount;
+    }
 }

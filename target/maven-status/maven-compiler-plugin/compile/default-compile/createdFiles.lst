@@ -1,0 +1,10 @@
+com/downloader/service/DownloadManager.class
+com/downloader/DownloaderApplication.class
+com/downloader/service/BandwidthLimiter.class
+com/downloader/model/DownloadJob.class
+com/downloader/exception/MalformedUrlCustomException.class
+com/downloader/controller/DownloadController.class
+com/downloader/service/ByteCounter.class
+com/downloader/exception/DownloadException.class
+com/downloader/model/DownloadQueue.class
+com/downloader/exception/InvalidJobException.class

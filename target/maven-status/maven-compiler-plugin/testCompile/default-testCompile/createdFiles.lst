@@ -1,0 +1,6 @@
+com/downloader/service/BandwidthLimiterTest.class
+com/downloader/model/DownloadJobTest.class
+com/downloader/service/DownloadManagerTest.class
+com/downloader/service/ByteCounterTest.class
+com/downloader/controller/DownloadControllerTest.class
+com/downloader/model/DownloadQueueTest.class

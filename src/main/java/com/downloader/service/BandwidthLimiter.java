@@ -2,17 +2,30 @@ package com.downloader.service;
 
 import com.downloader.exception.DownloadException;
 import com.downloader.model.DownloadJob;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import java.util.concurrent.Semaphore;
+
+@Component
 public class BandwidthLimiter {
 
-    // TODO 1: Final Semaphore field.
+    private final Semaphore semaphore;
 
-    // TODO 2: Constructor(int maxParallelDownloads)
-    //         - Initialise the Semaphore with that many permits.
+    public BandwidthLimiter(@Value("${max.parallel.downloads:2}") int maxParallelDownloads) {
+        this.semaphore = new Semaphore(maxParallelDownloads);
+    }
 
-    // TODO 3: public long download(DownloadJob job) throws DownloadException
-    //         a) Acquire a permit (blocks if limit reached).
-    //         b) try: Thread.sleep(50) to simulate fetching; return job.getSizeInBytes().
-    //         c) catch InterruptedException -> throw new DownloadException(...).
-    //         d) finally: ALWAYS release the permit.
+    public long download(DownloadJob job) throws DownloadException {
+        try {
+            semaphore.acquire();
+            Thread.sleep(50);
+            return job.getSizeInBytes();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new DownloadException("Download interrupted for job: " + job.getJobId());
+        } finally {
+            semaphore.release();
+        }
+    }
 }

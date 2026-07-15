@@ -1,17 +1,48 @@
 package com.downloader.model;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public final class DownloadJob {
 
-    // TODO 1: Static counter (shared), starting at 0 — used to build jobId.
+    private static final AtomicInteger COUNTER = new AtomicInteger(1);
 
-    // TODO 2: Final fields: jobId (String), url (String), sizeInBytes (long).
+    private final String jobId;
+    private final String url;
+    private final long sizeInBytes;
 
-    // TODO 3: Constructor(url, sizeInBytes)
-    //         - NO validation here (validation has moved to the service layer — see DownloadManager).
-    //         - Increment counter, build jobId as "D-1", "D-2", ...
-    //         - Assign url and sizeInBytes.
+    @JsonCreator
+    public DownloadJob(@JsonProperty("url") String url, @JsonProperty("sizeInBytes") long sizeInBytes) {
+        this.jobId = "D-" + COUNTER.getAndIncrement();
+        this.url = url;
+        this.sizeInBytes = sizeInBytes;
+    }
 
-    // TODO 4: Getters for jobId, url, sizeInBytes. (No setters — immutable.)
+    public String getJobId() {
+        return jobId;
+    }
 
-    // TODO 5: Override equals() and hashCode() based ONLY on jobId.
+    public String getUrl() {
+        return url;
+    }
+
+    public long getSizeInBytes() {
+        return sizeInBytes;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DownloadJob that = (DownloadJob) o;
+        return Objects.equals(jobId, that.jobId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(jobId);
+    }
 }

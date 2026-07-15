@@ -1,44 +1,102 @@
 package com.downloader.service;
 
+import com.downloader.exception.DownloadException;
 import com.downloader.exception.InvalidJobException;
+import com.downloader.exception.MalformedUrlCustomException;
 import com.downloader.model.DownloadJob;
 import com.downloader.model.DownloadQueue;
+import org.springframework.stereotype.Service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-// TODO 1: Annotate as a Spring service component.
+@Service
 public class DownloadManager {
 
-    // TODO 2: Two final fields (composition):
-    //         - BandwidthLimiter limiter
-    //         - ByteCounter counter
+    private final BandwidthLimiter limiter;
+    private final ByteCounter counter;
 
-    // TODO 3: Constructor injecting both fields.
+    public DownloadManager(BandwidthLimiter limiter, ByteCounter counter) {
+        this.limiter = limiter;
+        this.counter = counter;
+    }
 
-    // TODO 4: public void validateJob(DownloadJob job)
-    //         - If job.getSizeInBytes() < 0 -> throw InvalidJobException.
-    //         - Wrap new java.net.URL(job.getUrl()) in a try-catch block.
-    //         - Catch java.net.MalformedURLException and throw a new custom unchecked exception
-    //           named MalformedUrlCustomException (create this exception in the exception package).
-    //         (This check used to live in the DownloadJob constructor — it now lives here.)
+    public void validateJob(DownloadJob job) {
+        if (job.getSizeInBytes() < 0) {
+            throw new InvalidJobException("Job size cannot be negative");
+        }
+        try {
+            new URL(job.getUrl());
+        } catch (MalformedURLException e) {
+            throw new MalformedUrlCustomException("Invalid URL: " + job.getUrl(), e);
+        }
+    }
 
-    // TODO 5: public long runAll(DownloadQueue<DownloadJob> queue)
-    //         1. cores = Runtime.getRuntime().availableProcessors()
-    //         2. Create a fixed thread pool of size cores.
-    //         3. chunks = queue.split(cores)
-    //         4. For each chunk, build a Callable<Long> that:
-    //              - calls validateJob(job) for each job, then limiter.download(job) (handle DownloadException)
-    //              - calls counter.addBytes(...) for each
-    //              - returns the chunk's byte subtotal
-    //         5. SUBMIT ALL tasks first (collect Future<Long> in a list).
-    //         6. Collect: try -> loop future.get(); catch interrupt/execution;
-    //            finally -> ALWAYS pool.shutdown().
-    //         7. Return counter.getTotalBytes().
+    public long runAll(DownloadQueue<DownloadJob> queue) {
+        int cores = Runtime.getRuntime().availableProcessors();
+        ExecutorService pool = Executors.newFixedThreadPool(cores);
 
-    // TODO 6: public long sumSubtotals(List<? extends Number> subtotals)
-    //         - Sum using Streams + reduce: map to long via Number::longValue, then .reduce(0L, Long::sum).
-    //         - Wildcard lets it accept List<Integer>, List<Long>, etc.
+        try {
+            List<List<DownloadJob>> chunks = queue.split(cores);
+            List<Callable<Long>> callables = new ArrayList<>();
 
-    // TODO 7: public boolean allJobsWithinSizeLimit(DownloadQueue<DownloadJob> queue, long maxBytes)
-    //         - Use Streams allMatch: every job's sizeInBytes <= maxBytes.
+            for (List<DownloadJob> chunk : chunks) {
+                callables.add(() -> {
+                    long chunkTotal = 0;
+                    for (DownloadJob job : chunk) {
+                        validateJob(job);
+                        try {
+                            long bytes = limiter.download(job);
+                            counter.addBytes(bytes);
+                            chunkTotal += bytes;
+                        } catch (DownloadException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    return chunkTotal;
+                });
+            }
+
+            List<Future<Long>> futures = new ArrayList<>();
+            for (Callable<Long> callable : callables) {
+                futures.add(pool.submit(callable));
+            }
+
+            for (Future<Long> future : futures) {
+                try {
+                    future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    if (e.getCause() instanceof InvalidJobException) {
+                        throw (InvalidJobException) e.getCause();
+                    } else if (e.getCause() instanceof MalformedUrlCustomException) {
+                        throw (MalformedUrlCustomException) e.getCause();
+                    }
+                    throw new RuntimeException(e);
+                }
+            }
+
+        } finally {
+            pool.shutdown();
+        }
+
+        return counter.getTotalBytes();
+    }
+
+    public long sumSubtotals(List<? extends Number> subtotals) {
+        return subtotals.stream()
+                .mapToLong(Number::longValue)
+                .reduce(0L, Long::sum);
+    }
+
+    public boolean allJobsWithinSizeLimit(DownloadQueue<DownloadJob> queue, long maxBytes) {
+        return queue.getItems().stream()
+                .allMatch(job -> job.getSizeInBytes() <= maxBytes);
+    }
 }
