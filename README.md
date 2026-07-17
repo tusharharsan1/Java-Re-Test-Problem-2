@@ -36,8 +36,8 @@ Implement `ByteCounter`. It must:
 
 Complete `BandwidthLimiter`. It must:
 
-- Accept a maximum number of parallel downloads in its constructor and enforce it using a counting `Semaphore`.
-- Implement `download(DownloadJob job)` which: acquires a permit (blocking if the limit is reached), simulates fetching (a short `Thread.sleep`), returns the number of bytes downloaded (`job.getSizeInBytes()`), and always releases the permit in a `finally` block.
+- Note: The `Semaphore` is already provided and initialized with the maximum number of parallel downloads.
+- Implement `download(DownloadJob job)` which: acquires a permit from the semaphore (blocking if the limit is reached), simulates fetching (a short `Thread.sleep`), returns the number of bytes downloaded (`job.getSizeInBytes()`), and always releases the permit in a `finally` block.
 - Throw a checked `DownloadException` if the download is interrupted, releasing the permit regardless.
 
 ### Task 4 — Parallel Download Engine (Executors + Callable + Future)
