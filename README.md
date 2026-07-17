@@ -14,7 +14,7 @@ Because downloads run concurrently, correctness under parallel execution is crit
 
 ## Tasks
 
-### Task 1 — Download Job Model & Generic Queue
+### Task 1 — Download Job Class & Generic Queue
 
 Complete `DownloadJob` and the generic container `DownloadQueue<T>`. It must:
 
