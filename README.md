@@ -42,9 +42,8 @@ Complete `BandwidthLimiter`. It must:
 
 ### Task 4 — Parallel Download Engine (Executors + Callable + Future)
 
-Implement `DownloadManager` and annotate it as a Spring `@Service`. It must:
+Implement the core logic in `DownloadManager`. It must:
 
-- Use composition: hold a `BandwidthLimiter` and a `ByteCounter` (constructor-injected).
 - Implement `void validateJob(DownloadJob job)` — **this is the moved validation check**: 
   - If `job.getSizeInBytes() < 0`, throw `InvalidJobException`. 
   - Wrap `new java.net.URL(job.getUrl())` in a `try-catch` block. Catch `java.net.MalformedURLException` and throw a new custom exception `MalformedUrlCustomException` (which you must create in the `exception` package as an unchecked exception).
@@ -59,7 +58,3 @@ Implement `DownloadManager` and annotate it as a Spring `@Service`. It must:
   - Returns the total bytes downloaded.
 - Implement `long sumSubtotals(List<? extends Number> subtotals)` — a wildcard method summing chunk subtotals via Streams **using `reduce`** (`.reduce(0L, Long::sum)` after mapping to `long`).
 - Implement `boolean allJobsWithinSizeLimit(DownloadQueue<DownloadJob> queue, long maxBytes)` — use Streams `allMatch` to check every job's `sizeInBytes` is within the limit, **inclusive** (i.e. `sizeInBytes <= maxBytes`; a job exactly equal to `maxBytes` counts as within limit).
-
-### Task 5 — Controller Delegation
-
-Complete `DownloadController`. Ensure it is a Spring REST Controller, accepts `DownloadManager` via Constructor Injection, and delegates all methods with no business logic.
